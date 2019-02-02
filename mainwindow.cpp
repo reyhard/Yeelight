@@ -64,8 +64,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::readyRead()
 {
-
-    QByteArray stream= tcp_socket.readAll();
+    // Read stream
+    QByteArray stream = tcp_socket.readAll();
     dataString = stream;
     qDebug() << dataString;
 };
