@@ -67,7 +67,7 @@ void MainWindow::readyRead()
     // Read stream
     QByteArray stream = tcp_socket.readAll();
     dataString = stream;
-    qDebug() << dataString;
+    qDebug().noquote()  << "TCP LOG:" << dataString;
 };
 
 void MainWindow::processPendingDatagrams()
@@ -186,9 +186,8 @@ int MainWindow::sub_string(QByteArray &start_str, QByteArray &end_str, QByteArra
     return 0;
 }
 
-int MainWindow::return_value(QList<QString> value, QByteArray &rtn_str)
-{//
-    QByteArray result;
+int MainWindow::return_value(QList<QString> value, QStringList &rtn_str)
+{// function to retrive various properties from bulb using get_prop command.
     QString paramsString = "";
 
     int device_idx = ui->comboBox->currentIndex();
@@ -205,19 +204,20 @@ int MainWindow::return_value(QList<QString> value, QByteArray &rtn_str)
     QString parsedString = QString("{\"id\":%1,\"method\":\"get_prop\",\"params\":[%2]}\r\n").arg(device_idx_str,paramsString);
     QByteArray cmd_str = parsedString.toUtf8();
 
-    qDebug()<<"params parsed" <<parsedString;
     // Send message
-   // qDebug() << "write size" << tcp_socket.write(IntToArray(cmd_str.size()));
-    qDebug() << "retr1" << tcp_socket.write(cmd_str.data());
+    qDebug().noquote() << "params parsed" << parsedString << " bytes wrote" << tcp_socket.write(cmd_str.data());
     // Wait for response
     tcp_socket.waitForReadyRead(1000);
-    qDebug()<<"params retrived" <<dataString;
-    qDebug()<<"params retrived" <<tcp_socket.readAll();
+    qDebug().noquote() << "params retrived" << dataString;
 
     // Parse returned message
     QString expectedString = QString("{\"id\":%1, \"result\"}").arg(device_idx_str);
+    QString resultStr = dataString.mid(19);
+    resultStr.chop(4);
+    QStringList returnList = resultStr.split(',');
+    qDebug().noquote() << "result" << returnList;
 
-    rtn_str = result;
+    rtn_str = returnList;
 
     return 0;
 }
@@ -281,15 +281,26 @@ void MainWindow::on_pushButton_4_clicked()
 
 void MainWindow::on_pushButton_check_clicked()
 {   // check status button
-    QByteArray *cmd_str =new QByteArray;
-    cmd_str->clear();
 
-    int device_idx = ui->comboBox->currentIndex();
+    //int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
-        QByteArray start_str;
-        QByteArray end_str;
-        return_value(QList<QString>{"power","ct","hue","bright"},end_str);
+        QStringList ParamsRestored;
+        return_value(QList<QString>{"power","color_mode"},ParamsRestored);
+        qDebug().noquote() << "power status" << ParamsRestored.at(0);
+        QString colorMode_str;
+        switch (ParamsRestored.at(1).mid(1,1).toInt())
+        {
+            case 1:
+                colorMode_str = "RGB";break;
+            case 2:
+                colorMode_str = "Color temperature";break;
+            case 3:
+                colorMode_str = "HSV";break;
+        };
+        QString bulb_status_str = ParamsRestored.at(0);
+        bulb_status_str.remove("\"");
+        ui->label_bulb_status->setText(QString("Status: %1 (%2)").arg(bulb_status_str,colorMode_str));
     }
     else
     {
@@ -302,7 +313,6 @@ void MainWindow::on_horizontalSlider_valueChanged(int value)
     int pos = ui->horizontalSlider->value();
     QString slider_value = QString("%1").arg(pos) + "%";
     ui->label_4->setText(slider_value);
-/* */
     QByteArray *cmd_str =new QByteArray;
     cmd_str->clear();
     cmd_str->append("{\"id\":");
@@ -318,16 +328,6 @@ void MainWindow::on_horizontalSlider_valueChanged(int value)
         cmd_str->append(", \"smooth\", 500]}\r\n");
         tcp_socket.write(cmd_str->data());
         qDebug() << cmd_str->data();
-
-        /*QString testString = QString("{\"id\":%1,\"method\":\"get_prop\",\"params\":[\"power\", \"ct\", \"hue\", \"bright\"]}\r\n").arg(bulb[device_idx].get_id_str().c_str());
-
-        qDebug()<<"params retrived" <<testString;
-        cmd_str->clear();
-        cmd_str->append("{\"id\":");
-        cmd_str->append(bulb[device_idx].get_id_str().c_str());
-        cmd_str->append(",\"method\":\"get_prop\",\"params\":[\"power\", \"ct\", \"hue\", \"bright\"]}\r\n");
-        qDebug() << "retr2" << tcp_socket.write(cmd_str->data());\
-        qDebug()<<"params retrived" <<tcp_socket.readLine( 128);*/
     }
     else
     {
@@ -342,7 +342,6 @@ void MainWindow::on_slider_hue_valueChanged(int value)
     int posSat = ui->slider_saturation->value();
     QString slider_value = QString("%1").arg(posHue) + "%";
     ui->label_hue->setText(slider_value);
-/* */
     QByteArray *cmd_str =new QByteArray;
     cmd_str->clear();
     cmd_str->append("{\"id\":");
@@ -374,7 +373,6 @@ void MainWindow::on_slider_saturation_valueChanged(int value)
     int posSat = ui->slider_saturation->value();
     QString slider_value = QString("%1").arg(posSat) + "%";
     ui->label_saturation->setText(slider_value);
-/* */
     QByteArray *cmd_str =new QByteArray;
     cmd_str->clear();
     cmd_str->append("{\"id\":");

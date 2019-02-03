@@ -21,7 +21,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     int sub_string(QByteArray &start_str, QByteArray &end_str, QByteArray &rtn_str);
-    int return_value(QList<QString> value, QByteArray &rtn_str);
+    int return_value(QList<QString> value, QStringList &rtn_str);
     //int slider_brightness(int);
 
 private slots:
