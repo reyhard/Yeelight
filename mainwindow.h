@@ -22,6 +22,7 @@ public:
     ~MainWindow();
     int sub_string(QByteArray &start_str, QByteArray &end_str, QByteArray &rtn_str);
     int return_value(QList<QString> value, QStringList &rtn_str);
+    int update_mode();
     //int slider_brightness(int);
 
 private slots:
@@ -31,11 +32,21 @@ private slots:
     void on_pushButton_3_clicked();
     void on_pushButton_4_clicked();
     void on_pushButton_check_clicked();
+    void on_pushButton_switch_rgb_clicked();
+    void on_pushButton_switch_temp_clicked();
+    void on_pushButton_switch_hvt_clicked();
 
+    // Brightness slider
     void on_horizontalSlider_valueChanged(int value);
+    // HVT slider
     void on_slider_hue_valueChanged(int value);
     void on_slider_saturation_valueChanged(int value);
+    // Color temperature slider
     void on_slider_ct_valueChanged(int value);
+    // RGB sliders
+    void on_slider_rgb_red_valueChanged(int value);
+    void on_slider_rgb_green_valueChanged(int value);
+    void on_slider_rgb_blue_valueChanged(int value);
 
     void readyRead();
 
@@ -60,6 +71,7 @@ private:
     QString bulb_temp;
     QString bulb_hue;
     QString bulb_sat;
+    QString bulb_mode;
     QString dataString;
 };
 

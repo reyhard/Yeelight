@@ -222,6 +222,28 @@ int MainWindow::return_value(QList<QString> value, QStringList &rtn_str)
     return 0;
 }
 
+int MainWindow::update_mode()
+{// function to retrive various properties from bulb using get_prop command.
+
+    QStringList ParamsRestored;
+    return_value(QList<QString>{"power","color_mode"},ParamsRestored);
+    qDebug().noquote() << "power status" << ParamsRestored.at(0);
+    QString colorMode_str;
+    switch (ParamsRestored.at(1).mid(1,1).toInt())
+    {
+        case 1:
+            colorMode_str = "RGB";break;
+        case 2:
+            colorMode_str = "Color Temperature";break;
+        case 3:
+            colorMode_str = "HSV";break;
+    };
+    QString bulb_status_str = ParamsRestored.at(0);
+    bulb_status_str.remove("\"");
+    ui->label_bulb_status->setText(QString("Status: %1 (%2)").arg(bulb_status_str,colorMode_str));
+    return 0;
+}
+
 void MainWindow::on_pushButton_3_clicked()
 {//button
     QByteArray datagram = "M-SEARCH * HTTP/1.1\r\n\
@@ -249,6 +271,7 @@ void MainWindow::on_pushButton_clicked()
         ui->slider_hue->setValue(bulb[device_idx].get_hue());
         ui->slider_saturation->setValue(bulb[device_idx].get_saturation());
 
+        update_mode();
     }
     else
     {
@@ -271,6 +294,9 @@ void MainWindow::on_pushButton_4_clicked()
 
         cmd_str->append(",\"method\":\"toggle\",\"params\":[]}\r\n");
         tcp_socket.write(cmd_str->data());
+        //QThread::msleep(2000);
+        tcp_socket.waitForReadyRead(1000);
+        update_mode();
         qDebug() << cmd_str->data();
     }
     else
@@ -285,22 +311,99 @@ void MainWindow::on_pushButton_check_clicked()
     //int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
+        update_mode();
+    }
+    else
+    {
+        qDebug()<<"Bulb is empty";
+    }
+}
+
+void MainWindow::on_pushButton_switch_rgb_clicked()
+{   // check status button
+    int device_idx = ui->comboBox->currentIndex();
+    QString device_idx_str = bulb[device_idx].get_id_str().c_str();
+    if(bulb.size() > 0)
+    {
+        ui->stackedWidget->setCurrentIndex(2);
+        bulb[device_idx].set_mode(2);
+
+        // Get RGB parameters
         QStringList ParamsRestored;
-        return_value(QList<QString>{"power","color_mode"},ParamsRestored);
-        qDebug().noquote() << "power status" << ParamsRestored.at(0);
-        QString colorMode_str;
-        switch (ParamsRestored.at(1).mid(1,1).toInt())
-        {
-            case 1:
-                colorMode_str = "RGB";break;
-            case 2:
-                colorMode_str = "Color temperature";break;
-            case 3:
-                colorMode_str = "HSV";break;
-        };
-        QString bulb_status_str = ParamsRestored.at(0);
-        bulb_status_str.remove("\"");
-        ui->label_bulb_status->setText(QString("Status: %1 (%2)").arg(bulb_status_str,colorMode_str));
+        return_value(QList<QString>{"rgb"},ParamsRestored);
+        QString RGBValue = ParamsRestored.at(0);
+        RGBValue.remove("\"");
+
+        // Compose message to send
+        QString parsedString = QString("{\"id\":%1,\"method\":\"set_rgb\",\"params\":[%2,\"smooth\",500]}\r\n").arg(device_idx_str,RGBValue);
+        qDebug().noquote() << "parsed string to send" << parsedString;
+        QByteArray cmd_str = parsedString.toUtf8();
+        qDebug().noquote() << tcp_socket.write(cmd_str.data());
+        tcp_socket.waitForReadyRead(1000);
+
+        update_mode();
+    }
+    else
+    {
+        qDebug()<<"Bulb is empty";
+    }
+}
+
+void MainWindow::on_pushButton_switch_temp_clicked()
+{   // check status button
+    int device_idx = ui->comboBox->currentIndex();
+    QString device_idx_str = bulb[device_idx].get_id_str().c_str();
+    if(bulb.size() > 0)
+    {
+        ui->stackedWidget->setCurrentIndex(0);
+        bulb[device_idx].set_mode(0);
+
+        // Get Temp parameters
+        QStringList ParamsRestored;
+        return_value(QList<QString>{"ct"},ParamsRestored);
+        QString CTValue = ParamsRestored.at(0);
+        CTValue.remove("\"");
+
+        // Compose message to send
+        QString parsedString = QString("{\"id\":%1,\"method\":\"set_ct_abx\",\"params\":[%2,\"smooth\",500]}\r\n").arg(device_idx_str,CTValue);
+        qDebug().noquote() << "parsed string to send" << parsedString;
+        QByteArray cmd_str = parsedString.toUtf8();
+        qDebug().noquote() << tcp_socket.write(cmd_str.data());
+        tcp_socket.waitForReadyRead(1000);
+
+        update_mode();
+    }
+    else
+    {
+        qDebug()<<"Bulb is empty";
+    }
+}
+
+void MainWindow::on_pushButton_switch_hvt_clicked()
+{   // check status button
+    int device_idx = ui->comboBox->currentIndex();
+    QString device_idx_str = bulb[device_idx].get_id_str().c_str();
+    if(bulb.size() > 0)
+    {
+        ui->stackedWidget->setCurrentIndex(1);
+        bulb[device_idx].set_mode(1);
+
+        // Get HSV parameters
+        QStringList ParamsRestored;
+        return_value(QList<QString>{"hue","sat"},ParamsRestored);
+        QString HueValue = ParamsRestored.at(0);
+        QString SatValue = ParamsRestored.at(1);
+        HueValue.remove("\"");
+        SatValue.remove("\"");
+
+        // Compose message to send
+        QString parsedString = QString("{\"id\":%1,\"method\":\"set_hsv\",\"params\":[%2,%3,\"smooth\",500]}\r\n").arg(device_idx_str,HueValue,SatValue);
+        qDebug().noquote() << "parsed string to send" << parsedString;
+        QByteArray cmd_str = parsedString.toUtf8();
+        qDebug().noquote() << tcp_socket.write(cmd_str.data());
+        tcp_socket.waitForReadyRead(1000);
+
+        update_mode();
     }
     else
     {
@@ -349,16 +452,19 @@ void MainWindow::on_slider_hue_valueChanged(int value)
     int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
-        cmd_str->append(bulb[device_idx].get_id_str().c_str());
-        qDebug() << "combox index  = " << device_idx;
+        if(bulb[device_idx].get_mode() == 1)
+        {
+            cmd_str->append(bulb[device_idx].get_id_str().c_str());
+            qDebug() << "combox index  = " << device_idx;
 
-        cmd_str->append(",\"method\":\"set_hsv\",\"params\":[");
-        cmd_str->append(QString("%1").arg(posHue));
-        cmd_str->append(",");
-        cmd_str->append(QString("%1").arg(posSat));
-        cmd_str->append(", \"smooth\", 500]}\r\n");
-        //tcp_socket.write(cmd_str->data());
-        qDebug() << cmd_str->data();
+            cmd_str->append(",\"method\":\"set_hsv\",\"params\":[");
+            cmd_str->append(QString("%1").arg(posHue));
+            cmd_str->append(",");
+            cmd_str->append(QString("%1").arg(posSat));
+            cmd_str->append(", \"smooth\", 500]}\r\n");
+            tcp_socket.write(cmd_str->data());
+            qDebug() << cmd_str->data();
+        }
     }
     else
     {
@@ -376,20 +482,24 @@ void MainWindow::on_slider_saturation_valueChanged(int value)
     QByteArray *cmd_str =new QByteArray;
     cmd_str->clear();
     cmd_str->append("{\"id\":");
-
     int device_idx = ui->comboBox->currentIndex();
+    qDebug() << "mode c" << bulb[device_idx].get_mode();
     if(bulb.size() > 0)
     {
-        cmd_str->append(bulb[device_idx].get_id_str().c_str());
-        qDebug() << "combox index  = " << device_idx;
+        if(bulb[device_idx].get_mode() == 1)
+        {
+            cmd_str->append(bulb[device_idx].get_id_str().c_str());
+            qDebug() << "combox index  = " << device_idx;
 
-        cmd_str->append(",\"method\":\"set_hsv\",\"params\":[");
-        cmd_str->append(QString("%1").arg(posHue));
-        cmd_str->append(",");
-        cmd_str->append(QString("%1").arg(posSat));
-        cmd_str->append(", \"smooth\", 500]}\r\n");
-        //tcp_socket.write(cmd_str->data());
-        qDebug() << cmd_str->data();
+            cmd_str->append(",\"method\":\"set_hsv\",\"params\":[");
+            cmd_str->append(QString("%1").arg(posHue));
+            cmd_str->append(",");
+            cmd_str->append(QString("%1").arg(posSat));
+            cmd_str->append(", \"smooth\", 500]}\r\n");
+
+            tcp_socket.write(cmd_str->data());
+            qDebug() << cmd_str->data();
+        }
     }
     else
     {
@@ -411,22 +521,39 @@ void MainWindow::on_slider_ct_valueChanged(int value)
     int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
-        cmd_str->append(bulb[device_idx].get_id_str().c_str());
-        qDebug() << "combox index  = " << device_idx;
+        if(bulb[device_idx].get_mode() == 0)
+        {
+            cmd_str->append(bulb[device_idx].get_id_str().c_str());
+            qDebug() << "combox index  = " << device_idx;
 
-        QString testString = QString("{\"id\":%1,\"method\":\"set_ct_abx\",\"params\":[%2, \"smooth\", 500]}\r\n").arg(bulb[device_idx].get_id_str().c_str(),pos);
+            QString testString = QString("{\"id\":%1,\"method\":\"set_ct_abx\",\"params\":[%2, \"smooth\", 500]}\r\n").arg(bulb[device_idx].get_id_str().c_str(),pos);
 
-        qDebug()<<"params retrived" <<testString;
+            qDebug()<<"params retrived" <<testString;
 
-        cmd_str->append(",\"method\":\"set_ct_abx\",\"params\":[");
-        cmd_str->append(QString("%1").arg(pos));
-        cmd_str->append(", \"smooth\", 500]}\r\n");
-        tcp_socket.write(cmd_str->data());
-        qDebug() << cmd_str->data();
+            cmd_str->append(",\"method\":\"set_ct_abx\",\"params\":[");
+            cmd_str->append(QString("%1").arg(pos));
+            cmd_str->append(", \"smooth\", 500]}\r\n");
+            tcp_socket.write(cmd_str->data());
+            qDebug() << cmd_str->data();
+        }
     }
     else
     {
         qDebug()<<"Bulb is empty";
     }
+
+}
+
+void MainWindow::on_slider_rgb_red_valueChanged(int value)
+{
+
+}
+
+void MainWindow::on_slider_rgb_green_valueChanged(int value)
+{
+
+}
+void MainWindow::on_slider_rgb_blue_valueChanged(int value)
+{
 
 }

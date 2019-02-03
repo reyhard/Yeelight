@@ -15,9 +15,10 @@ class bulb_t
     int temperature;
     int hue;
     int saturation;
+    int color_mode;
 public:
     bulb_t(void);
-    bulb_t(string ip, string id, int brt = 100, int temp = 1500, int hue_v = 0, int sat = 0, int pt = 55443);
+    bulb_t(string ip, string id, int brt = 100, int temp = 1500, int hue_v = 0, int sat = 0, int mode = 0, int pt = 55443);
     string get_ip_str();
     string get_id_str();
     int get_port();
@@ -27,6 +28,8 @@ public:
     int get_temperature();
     int get_hue();
     int get_saturation();
+    int get_mode();
+    void set_mode(int mode_value);
 };
 
 #endif // BULT_T_H
