@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>422</width>
-    <height>450</height>
+    <width>430</width>
+    <height>452</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -58,7 +58,7 @@
        <x>340</x>
        <y>60</y>
        <width>51</width>
-       <height>20</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
@@ -232,7 +232,7 @@
        <number>2</number>
       </property>
       <widget class="QWidget" name="page_temp">
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <property name="geometry">
          <rect>
           <x>0</x>
@@ -279,7 +279,7 @@
        </widget>
       </widget>
       <widget class="QWidget" name="page_hvt">
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <property name="geometry">
          <rect>
           <x>0</x>
@@ -374,7 +374,7 @@
        </widget>
       </widget>
       <widget class="QWidget" name="page_rgb">
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <property name="geometry">
          <rect>
           <x>0</x>
@@ -503,7 +503,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>283</x>
@@ -537,7 +537,7 @@
      </layout>
     </widget>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>0</x>
@@ -554,7 +554,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>422</width>
+     <width>430</width>
      <height>20</height>
     </rect>
    </property>

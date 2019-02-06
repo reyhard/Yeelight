@@ -229,15 +229,18 @@ int MainWindow::update_mode()
     return_value(QList<QString>{"power","color_mode"},ParamsRestored);
     qDebug().noquote() << "power status" << ParamsRestored.at(0);
     QString colorMode_str;
-    switch (ParamsRestored.at(1).mid(1,1).toInt())
+    int ModeNumber = ParamsRestored.at(1).mid(1,1).toInt();
+    int device_idx = ui->comboBox->currentIndex();
+    switch (ModeNumber)
     {
         case 1:
-            colorMode_str = "RGB";break;
+            colorMode_str = "RGB";ui->stackedWidget->setCurrentIndex(2);break;
         case 2:
-            colorMode_str = "Color Temperature";break;
+            colorMode_str = "Color Temperature";ui->stackedWidget->setCurrentIndex(0);break;
         case 3:
-            colorMode_str = "HSV";break;
+            colorMode_str = "HSV";ui->stackedWidget->setCurrentIndex(1);break;
     };
+    bulb[device_idx].set_mode(ModeNumber);
     QString bulb_status_str = ParamsRestored.at(0);
     bulb_status_str.remove("\"");
     ui->label_bulb_status->setText(QString("Status: %1 (%2)").arg(bulb_status_str,colorMode_str));
@@ -266,12 +269,14 @@ void MainWindow::on_pushButton_clicked()
         tcp_socket.connectToHost(QHostAddress(bulb[device_idx].get_ip_str().c_str()), bulb[device_idx].get_port());
         QString ip_string = QString("currently connected: %1").arg( bulb[device_idx].get_ip_str().c_str());
         ui->label_ip->setText(ip_string);
+
+        update_mode();
+
         ui->horizontalSlider->setValue(bulb[device_idx].get_brightness());
         ui->slider_ct->setValue(bulb[device_idx].get_temperature());
         ui->slider_hue->setValue(bulb[device_idx].get_hue());
         ui->slider_saturation->setValue(bulb[device_idx].get_saturation());
 
-        update_mode();
     }
     else
     {
