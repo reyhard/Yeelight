@@ -22,6 +22,7 @@ public:
     ~MainWindow();
     int sub_string(QByteArray &start_str, QByteArray &end_str, QByteArray &rtn_str);
     int return_value(QList<QString> value, QStringList &rtn_str);
+    int send_command(QString command, QString params);
     int update_mode();
     //int slider_brightness(int);
 

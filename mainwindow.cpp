@@ -188,12 +188,12 @@ int MainWindow::sub_string(QByteArray &start_str, QByteArray &end_str, QByteArra
 
 int MainWindow::return_value(QList<QString> value, QStringList &rtn_str)
 {// function to retrive various properties from bulb using get_prop command.
-    QString paramsString = "";
 
     int device_idx = ui->comboBox->currentIndex();
     QString device_idx_str = bulb[device_idx].get_id_str().c_str();
 
     // Merge all params into single string
+    QString paramsString = "";
     foreach(QString str, value)
     {
         paramsString.append(QString("\"%1\",").arg(str));
@@ -222,6 +222,24 @@ int MainWindow::return_value(QList<QString> value, QStringList &rtn_str)
     return 0;
 }
 
+int MainWindow::send_command(QString command, QString params)
+{// function to retrive various properties from bulb using get_prop command.
+
+    int device_idx = ui->comboBox->currentIndex();
+    QString device_idx_str = bulb[device_idx].get_id_str().c_str();
+
+    // Compose message to send
+    QString parsedString = QString("{\"id\":%1,\"method\":\"%2\",\"params\":[%3]}\r\n").arg(device_idx_str,command,params);
+    QByteArray cmd_str = parsedString.toUtf8();
+
+    // Send message
+    qDebug().noquote() << "params parsed" << parsedString << " bytes wrote" << tcp_socket.write(cmd_str.data());
+    // Wait for response
+    tcp_socket.waitForReadyRead(1000);
+    qDebug().noquote() << "params retrived" << dataString;
+
+    return 0;
+}
 int MainWindow::update_mode()
 {// function to retrive various properties from bulb using get_prop command.
 
@@ -421,21 +439,10 @@ void MainWindow::on_horizontalSlider_valueChanged(int value)
     int pos = ui->horizontalSlider->value();
     QString slider_value = QString("%1").arg(pos) + "%";
     ui->label_4->setText(slider_value);
-    QByteArray *cmd_str =new QByteArray;
-    cmd_str->clear();
-    cmd_str->append("{\"id\":");
 
-    int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
-        cmd_str->append(bulb[device_idx].get_id_str().c_str());
-        qDebug() << "combox index  = " << device_idx;
-
-        cmd_str->append(",\"method\":\"set_bright\",\"params\":[");
-		cmd_str->append(QString("%1").arg(pos));
-        cmd_str->append(", \"smooth\", 500]}\r\n");
-        tcp_socket.write(cmd_str->data());
-        qDebug() << cmd_str->data();
+        send_command("set_bright",QString("%1, \"smooth\", 500").arg(pos));
     }
     else
     {
@@ -450,25 +457,14 @@ void MainWindow::on_slider_hue_valueChanged(int value)
     int posSat = ui->slider_saturation->value();
     QString slider_value = QString("%1").arg(posHue) + "%";
     ui->label_hue->setText(slider_value);
-    QByteArray *cmd_str =new QByteArray;
-    cmd_str->clear();
-    cmd_str->append("{\"id\":");
 
-    int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
-        if(bulb[device_idx].get_mode() == 1)
+        int device_idx = ui->comboBox->currentIndex();
+        qDebug()<<"Mode" << bulb[device_idx].get_mode();
+        if(bulb[device_idx].get_mode() == 3)
         {
-            cmd_str->append(bulb[device_idx].get_id_str().c_str());
-            qDebug() << "combox index  = " << device_idx;
-
-            cmd_str->append(",\"method\":\"set_hsv\",\"params\":[");
-            cmd_str->append(QString("%1").arg(posHue));
-            cmd_str->append(",");
-            cmd_str->append(QString("%1").arg(posSat));
-            cmd_str->append(", \"smooth\", 500]}\r\n");
-            tcp_socket.write(cmd_str->data());
-            qDebug() << cmd_str->data();
+            send_command("set_hsv",QString("%1, %2, \"smooth\", 500").arg(posHue).arg(posSat));
         }
     }
     else
@@ -484,26 +480,14 @@ void MainWindow::on_slider_saturation_valueChanged(int value)
     int posSat = ui->slider_saturation->value();
     QString slider_value = QString("%1").arg(posSat) + "%";
     ui->label_saturation->setText(slider_value);
-    QByteArray *cmd_str =new QByteArray;
-    cmd_str->clear();
-    cmd_str->append("{\"id\":");
-    int device_idx = ui->comboBox->currentIndex();
-    qDebug() << "mode c" << bulb[device_idx].get_mode();
+
     if(bulb.size() > 0)
     {
-        if(bulb[device_idx].get_mode() == 1)
+        int device_idx = ui->comboBox->currentIndex();
+        qDebug()<<"Mode" << bulb[device_idx].get_mode();
+        if(bulb[device_idx].get_mode() == 3)
         {
-            cmd_str->append(bulb[device_idx].get_id_str().c_str());
-            qDebug() << "combox index  = " << device_idx;
-
-            cmd_str->append(",\"method\":\"set_hsv\",\"params\":[");
-            cmd_str->append(QString("%1").arg(posHue));
-            cmd_str->append(",");
-            cmd_str->append(QString("%1").arg(posSat));
-            cmd_str->append(", \"smooth\", 500]}\r\n");
-
-            tcp_socket.write(cmd_str->data());
-            qDebug() << cmd_str->data();
+            send_command("set_hsv",QString("%1, %2, \"smooth\", 500").arg(posHue).arg(posSat));
         }
     }
     else
@@ -519,27 +503,12 @@ void MainWindow::on_slider_ct_valueChanged(int value)
     QString slider_value = QString("%1").arg(pos) + "K";
     ui->label_ct->setText(slider_value);
 
-    QByteArray *cmd_str =new QByteArray;
-    cmd_str->clear();
-    cmd_str->append("{\"id\":");
-
-    int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
-        if(bulb[device_idx].get_mode() == 0)
+        int device_idx = ui->comboBox->currentIndex();
+        if(bulb[device_idx].get_mode() == 2)
         {
-            cmd_str->append(bulb[device_idx].get_id_str().c_str());
-            qDebug() << "combox index  = " << device_idx;
-
-            QString testString = QString("{\"id\":%1,\"method\":\"set_ct_abx\",\"params\":[%2, \"smooth\", 500]}\r\n").arg(bulb[device_idx].get_id_str().c_str(),pos);
-
-            qDebug()<<"params retrived" <<testString;
-
-            cmd_str->append(",\"method\":\"set_ct_abx\",\"params\":[");
-            cmd_str->append(QString("%1").arg(pos));
-            cmd_str->append(", \"smooth\", 500]}\r\n");
-            tcp_socket.write(cmd_str->data());
-            qDebug() << cmd_str->data();
+            send_command("set_ct_abx",QString("%1, \"smooth\", 500").arg(pos));
         }
     }
     else
@@ -551,14 +520,71 @@ void MainWindow::on_slider_ct_valueChanged(int value)
 
 void MainWindow::on_slider_rgb_red_valueChanged(int value)
 {
+    int pos_red = ui->slider_rgb_red->value();
+    int pos_green = ui->slider_rgb_green->value();
+    int pos_blue = ui->slider_rgb_blue->value();
 
+    QString slider_value = QString("%1").arg(pos_red) + "K";
+    ui->label_rgb_red->setText(slider_value);
+
+    if(bulb.size() > 0)
+    {
+        int device_idx = ui->comboBox->currentIndex();
+        if(bulb[device_idx].get_mode() == 1)
+        {
+            send_command("set_rgb",QString("%1, \"smooth\", 500").arg(pos_red*65536+pos_green*256+pos_blue));
+        }
+    }
+    else
+    {
+        qDebug()<<"Bulb is empty";
+    }
 }
 
 void MainWindow::on_slider_rgb_green_valueChanged(int value)
 {
 
+    int pos_red = ui->slider_rgb_red->value();
+    int pos_green = ui->slider_rgb_green->value();
+    int pos_blue = ui->slider_rgb_blue->value();
+
+    QString slider_value = QString("%1").arg(pos_red) + "K";
+    ui->label_rgb_green->setText(slider_value);
+
+    if(bulb.size() > 0)
+    {
+        int device_idx = ui->comboBox->currentIndex();
+        qDebug()<<"Mode" << bulb[device_idx].get_mode();
+        if(bulb[device_idx].get_mode() == 1)
+        {
+            send_command("set_rgb",QString("%1, \"smooth\", 500").arg(pos_red*65536+pos_green*256+pos_blue));
+        }
+    }
+    else
+    {
+        qDebug()<<"Bulb is empty";
+    }
 }
 void MainWindow::on_slider_rgb_blue_valueChanged(int value)
 {
 
+    int pos_red = ui->slider_rgb_red->value();
+    int pos_green = ui->slider_rgb_green->value();
+    int pos_blue = ui->slider_rgb_blue->value();
+
+    QString slider_value = QString("%1").arg(pos_red) + "K";
+    ui->label_rgb_blue->setText(slider_value);
+
+    if(bulb.size() > 0)
+    {
+        int device_idx = ui->comboBox->currentIndex();
+        if(bulb[device_idx].get_mode() == 1)
+        {
+            send_command("set_rgb",QString("%1, \"smooth\", 500").arg(pos_red*65536+pos_green*256+pos_blue));
+        }
+    }
+    else
+    {
+        qDebug()<<"Bulb is empty";
+    }
 }
