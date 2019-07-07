@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
     MainWindow::setWindowTitle("Yeelight Bulb Toggle");
     //ui->horizontalSlider tracking = false
 
-    mcast_addr = "239.255.255.250";//UDP组播IP
+    mcast_addr = "239.255.255.250";
     udp_port = 1982;//UDP port
 
     {//IP
@@ -30,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
             if(address.protocol() == QAbstractSocket::IPv4Protocol)
             {
                 ui->label->setText(address.toString());
-                local_ip = address.toString();//存储本机IP
+                local_ip = address.toString();
                 qDebug()<<"Local PC IP:"<<address.toString();
             }
         }
@@ -49,7 +49,7 @@ MainWindow::MainWindow(QWidget *parent) :
         }
 
         udp_socket.joinMulticastGroup(mcast_addr);
-        connect(&udp_socket, SIGNAL(readyRead()), // 数据流过来触发readyRead()信号
+        connect(&udp_socket, SIGNAL(readyRead()),
             this, SLOT(processPendingDatagrams()));
     }
     on_pushButton_3_clicked();
@@ -76,7 +76,7 @@ void MainWindow::processPendingDatagrams()
     { //
         qDebug()<<"udp receive data";
         udp_datagram_recv.resize(udp_socket.pendingDatagramSize());
-        udp_socket.readDatagram(udp_datagram_recv.data(), udp_datagram_recv.size()); //读取数据
+        udp_socket.readDatagram(udp_datagram_recv.data(), udp_datagram_recv.size());
         qDebug()<<udp_datagram_recv.data();
 
         QByteArray start_str;
@@ -94,61 +94,28 @@ void MainWindow::processPendingDatagrams()
         }
 
         //bulb_id
-        start_str.clear(); end_str.clear(); rtn_str.clear();
-        start_str.append("id: ");
-        end_str.append("\r\n");
-        sub_string(start_str, end_str, rtn_str);
-        if(rtn_str.isEmpty() == false)
-        {
-            bulb_id_str = rtn_str;
-        }
+        bulb_id_str = get_value_from_input("id");
 
         //bulb_brightness
-        start_str.clear(); end_str.clear(); rtn_str.clear();
-        start_str.append("bright: ");
-        end_str.append("\r\n");
-        sub_string(start_str, end_str, rtn_str);
-        if(rtn_str.isEmpty() == false)
-        {
-            bulb_bright = rtn_str;
-        }
-        qDebug()<< "bulb brightness: "<< bulb_bright;
+        bulb_bright = get_value_from_input("bright");
 
         // temperature
-        start_str.clear(); end_str.clear(); rtn_str.clear();
-        start_str.append("ct: ");
-        end_str.append("\r\n");
-        sub_string(start_str, end_str, rtn_str);
-        if(rtn_str.isEmpty() == false)
-        {
-            bulb_temp = rtn_str;
-        }
+        bulb_temp = get_value_from_input("ct");
 
         // hue
-        start_str.clear(); end_str.clear(); rtn_str.clear();
-        start_str.append("hue: ");
-        end_str.append("\r\n");
-        sub_string(start_str, end_str, rtn_str);
-        if(rtn_str.isEmpty() == false)
-        {
-            bulb_hue = rtn_str;
-        }
+        bulb_hue = get_value_from_input("hue");
 
         // saturation
-        start_str.clear(); end_str.clear(); rtn_str.clear();
-        start_str.append("sat: ");
-        end_str.append("\r\n");
-        sub_string(start_str, end_str, rtn_str);
-        if(rtn_str.isEmpty() == false)
-        {
-            bulb_sat = rtn_str;
-        }
+        bulb_sat = get_value_from_input("sat");
+
+        // get bulb mode
+        bulb_mode = get_value_from_input("color_mode");
 
         // get bulb name
-        //
-        QString bulbName = bulb_id_str;
+        bulb_name = get_value_from_input("name");
+
         //Filling combo box with bulbs
-        bulb_t bulb_tmp(bulb_ip.toStdString(), bulb_id_str.toStdString(), bulb_bright.toInt(), bulb_temp.toInt(), bulb_hue.toInt(), bulb_sat.toInt());
+        bulb_t bulb_tmp(bulb_ip.toStdString(), bulb_id_str.toStdString(), bulb_bright.toInt(), bulb_temp.toInt(), bulb_hue.toInt(), bulb_sat.toInt(),bulb_mode.toInt(),bulb_name.toStdString());
         ib = std::find(bulb.begin(), bulb.end(), bulb_tmp);
         if (ib == bulb.end())
         {
@@ -157,7 +124,8 @@ void MainWindow::processPendingDatagrams()
             QStringList items;
             QString tmp;
             tmp = bulb_ip.append(" name:");
-            tmp.append("biurko");
+            tmp.append(bulb_name);
+
             items << tmp;
             ui->comboBox->addItems(items);
         }
@@ -165,6 +133,21 @@ void MainWindow::processPendingDatagrams()
     on_pushButton_clicked();
 }
 
+QByteArray MainWindow:: get_value_from_input(QString inputString)
+{
+    QByteArray start_str;
+    QByteArray end_str;
+    QByteArray rtn_str;
+    start_str.clear(); end_str.clear(); rtn_str.clear();
+
+    start_str.append(QString("%1: ").arg(inputString));
+    end_str.append("\r\n");
+    sub_string(start_str, end_str, rtn_str);
+    if(rtn_str.isEmpty() == false)
+    {
+        return rtn_str;
+    }
+};
 int MainWindow::sub_string(QByteArray &start_str, QByteArray &end_str, QByteArray &rtn_str)
 {//
     QByteArray result;
@@ -278,14 +261,12 @@ ST: wifi_bulb";
 
 void MainWindow::on_pushButton_clicked()
 {// connect button
-    tcp_socket.close();//关闭上次的连接
+    tcp_socket.close();
     int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
-       // socket->connectToHost(QHostAddress(bulb[device_idx].get_ip_str().c_str()), bulb[device_idx].get_port());
-
         tcp_socket.connectToHost(QHostAddress(bulb[device_idx].get_ip_str().c_str()), bulb[device_idx].get_port());
-        QString ip_string = QString("currently connected: %1").arg( bulb[device_idx].get_ip_str().c_str());
+        QString ip_string = QString("currently connected: %1 (%2)").arg( bulb[device_idx].get_ip_str().c_str(),bulb[device_idx].get_name().c_str());
         ui->label_ip->setText(ip_string);
 
         update_mode();
@@ -295,6 +276,18 @@ void MainWindow::on_pushButton_clicked()
         ui->slider_hue->setValue(bulb[device_idx].get_hue());
         ui->slider_saturation->setValue(bulb[device_idx].get_saturation());
 
+        // Get RGB parameters
+        QStringList ParamsRestored;
+        return_value(QList<QString>{"rgb"},ParamsRestored);
+        QString RGBValue = ParamsRestored.at(0);
+        RGBValue.remove("\"");
+        int pos_red = RGBValue.toInt()/65536;
+        int pos_green = (RGBValue.toInt() - pos_red*65536)/256;
+        int pos_blue = (RGBValue.toInt() - pos_red*65536 - pos_green*256);
+        //pos_red*65536+pos_green*256+pos_blue
+        ui->slider_rgb_red->setValue(pos_red);
+        ui->slider_rgb_green->setValue(pos_green);
+        ui->slider_rgb_blue->setValue(pos_blue);
     }
     else
     {
@@ -317,7 +310,6 @@ void MainWindow::on_pushButton_4_clicked()
 
         cmd_str->append(",\"method\":\"toggle\",\"params\":[]}\r\n");
         tcp_socket.write(cmd_str->data());
-        //QThread::msleep(2000);
         tcp_socket.waitForReadyRead(1000);
         update_mode();
         qDebug() << cmd_str->data();
@@ -330,11 +322,23 @@ void MainWindow::on_pushButton_4_clicked()
 
 void MainWindow::on_pushButton_check_clicked()
 {   // check status button
-
-    //int device_idx = ui->comboBox->currentIndex();
     if(bulb.size() > 0)
     {
         update_mode();
+    }
+    else
+    {
+        qDebug()<<"Bulb is empty";
+    }
+}
+
+void MainWindow::on_pushButton_setName_clicked()
+{   // check status button
+
+    if(bulb.size() > 0)
+    {
+        QString bulbName = ui->setName_text->displayText();
+        send_command("set_name",QString("\"%1\"").arg(bulbName));
     }
     else
     {
@@ -524,7 +528,7 @@ void MainWindow::on_slider_rgb_red_valueChanged(int value)
     int pos_green = ui->slider_rgb_green->value();
     int pos_blue = ui->slider_rgb_blue->value();
 
-    QString slider_value = QString("%1").arg(pos_red) + "K";
+    QString slider_value = QString("%1").arg(pos_red);
     ui->label_rgb_red->setText(slider_value);
 
     if(bulb.size() > 0)
@@ -548,7 +552,7 @@ void MainWindow::on_slider_rgb_green_valueChanged(int value)
     int pos_green = ui->slider_rgb_green->value();
     int pos_blue = ui->slider_rgb_blue->value();
 
-    QString slider_value = QString("%1").arg(pos_red) + "K";
+    QString slider_value = QString("%1").arg(pos_green);
     ui->label_rgb_green->setText(slider_value);
 
     if(bulb.size() > 0)
@@ -572,7 +576,7 @@ void MainWindow::on_slider_rgb_blue_valueChanged(int value)
     int pos_green = ui->slider_rgb_green->value();
     int pos_blue = ui->slider_rgb_blue->value();
 
-    QString slider_value = QString("%1").arg(pos_red) + "K";
+    QString slider_value = QString("%1").arg(pos_blue);
     ui->label_rgb_blue->setText(slider_value);
 
     if(bulb.size() > 0)

@@ -24,6 +24,7 @@ public:
     int return_value(QList<QString> value, QStringList &rtn_str);
     int send_command(QString command, QString params);
     int update_mode();
+    QByteArray get_value_from_input(QString inputString);
     //int slider_brightness(int);
 
 private slots:
@@ -33,6 +34,7 @@ private slots:
     void on_pushButton_3_clicked();
     void on_pushButton_4_clicked();
     void on_pushButton_check_clicked();
+    void on_pushButton_setName_clicked();
     void on_pushButton_switch_rgb_clicked();
     void on_pushButton_switch_temp_clicked();
     void on_pushButton_switch_hvt_clicked();
@@ -69,6 +71,7 @@ private:
     QString bulb_ip;
     QString bulb_bright;
     QString bulb_id_str;
+    QString bulb_name;
     QString bulb_temp;
     QString bulb_hue;
     QString bulb_sat;

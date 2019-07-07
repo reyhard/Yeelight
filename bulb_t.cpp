@@ -7,6 +7,7 @@ bulb_t::bulb_t(void)
     ip_str.clear();
     id_str.clear();
     port = 55443;
+    bulb_name = "";
 
     brightness = 100;
     temperature = 1000;
@@ -15,11 +16,12 @@ bulb_t::bulb_t(void)
     color_mode = 0;
 }
 
-bulb_t::bulb_t(string ip, string id, int brt,int temp,int hue_v, int sat, int mode, int pt /*= 55443*/)
+bulb_t::bulb_t(string ip, string id, int brt,int temp,int hue_v, int sat, int mode, string bName, int pt)
 {
     ip_str = ip;
     id_str = id;
     port = pt;
+    bulb_name = bName;
 
     brightness = brt;
     temperature = temp;
@@ -77,3 +79,12 @@ void bulb_t::set_mode(int mode_value)
     color_mode = mode_value;
 }
 
+string bulb_t::get_name()
+{
+    return bulb_name;
+}
+
+void bulb_t::set_name(string bulb_string)
+{
+    bulb_name = bulb_string;
+}
