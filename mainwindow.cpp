@@ -147,6 +147,7 @@ QByteArray MainWindow:: get_value_from_input(QString inputString)
     {
         return rtn_str;
     }
+    return "";
 };
 int MainWindow::sub_string(QByteArray &start_str, QByteArray &end_str, QByteArray &rtn_str)
 {//
@@ -171,7 +172,9 @@ int MainWindow::sub_string(QByteArray &start_str, QByteArray &end_str, QByteArra
 
 int MainWindow::return_value(QList<QString> value, QStringList &rtn_str)
 {// function to retrive various properties from bulb using get_prop command.
+    // Due to recent firmware update I have to add another suspension because otherwise I would get some echo messages from get_prop
 
+    tcp_socket.waitForReadyRead(1000);
     int device_idx = ui->comboBox->currentIndex();
     QString device_idx_str = bulb[device_idx].get_id_str().c_str();
 
@@ -180,7 +183,7 @@ int MainWindow::return_value(QList<QString> value, QStringList &rtn_str)
     foreach(QString str, value)
     {
         paramsString.append(QString("\"%1\",").arg(str));
-    };
+    }
     paramsString.chop(1);
 
     // Compose message to send
@@ -188,14 +191,27 @@ int MainWindow::return_value(QList<QString> value, QStringList &rtn_str)
     QByteArray cmd_str = parsedString.toUtf8();
 
     // Send message
-    qDebug().noquote() << "params parsed" << parsedString << " bytes wrote" << tcp_socket.write(cmd_str.data());
+    qint64 bytesSent = -1;
+    int attempts = 0;
+    while (bytesSent < 0 && attempts < 100)
+    {
+        bytesSent = tcp_socket.write(cmd_str.data());
+        tcp_socket.waitForBytesWritten(10000);
+
+        if(bytesSent < 0)
+        {
+            qDebug().noquote() << "attempt to send data" << cmd_str << " result: " << bytesSent << " no " <<attempts;
+            attempts += 1;
+        }
+    }
+    qDebug().noquote() << "params parsed" << parsedString << " bytes wrote" << bytesSent;
     // Wait for response
     tcp_socket.waitForReadyRead(1000);
     qDebug().noquote() << "params retrived" << dataString;
 
     // Parse returned message
-    QString expectedString = QString("{\"id\":%1, \"result\"}").arg(device_idx_str);
-    QString resultStr = dataString.mid(19);
+    QString expectedString = QString("(\"id\":%1,\"result\")").arg(device_idx_str);
+    QString resultStr = dataString.mid(18);
     resultStr.chop(4);
     QStringList returnList = resultStr.split(',');
     qDebug().noquote() << "result" << returnList;
@@ -216,7 +232,20 @@ int MainWindow::send_command(QString command, QString params)
     QByteArray cmd_str = parsedString.toUtf8();
 
     // Send message
-    qDebug().noquote() << "params parsed" << parsedString << " bytes wrote" << tcp_socket.write(cmd_str.data());
+    qint64 bytesSent = -1;
+    int attempts = 0;
+    while (bytesSent < 0 && attempts < 100)
+    {
+        bytesSent = tcp_socket.write(cmd_str.data());
+
+        if(bytesSent < 0)
+        {
+            tcp_socket.waitForBytesWritten(10000);
+            qDebug().noquote() << "attempt to send data" << cmd_str << " result: " << bytesSent << " no " <<attempts;
+            attempts += 1;
+        }
+    }
+    qDebug().noquote() << "params parsed" << parsedString << " bytes wrote" << bytesSent;
     // Wait for response
     tcp_socket.waitForReadyRead(1000);
     qDebug().noquote() << "params retrived" << dataString;
@@ -231,6 +260,7 @@ int MainWindow::update_mode()
     qDebug().noquote() << "power status" << ParamsRestored.at(0);
     QString colorMode_str;
     int ModeNumber = ParamsRestored.at(1).mid(1,1).toInt();
+    //int ModeNumber = 1;
     int device_idx = ui->comboBox->currentIndex();
     switch (ModeNumber)
     {
@@ -240,7 +270,7 @@ int MainWindow::update_mode()
             colorMode_str = "Color Temperature";ui->stackedWidget->setCurrentIndex(0);break;
         case 3:
             colorMode_str = "HSV";ui->stackedWidget->setCurrentIndex(1);break;
-    };
+    }
     bulb[device_idx].set_mode(ModeNumber);
     QString bulb_status_str = ParamsRestored.at(0);
     bulb_status_str.remove("\"");
@@ -255,7 +285,7 @@ HOST: 239.255.255.250:1982\r\n\
 MAN: \"ssdp:discover\"\r\n\
 ST: wifi_bulb";
 
-    int ret = udp_socket.writeDatagram(datagram.data(), datagram.size(), mcast_addr, udp_port);
+    qint64 ret = udp_socket.writeDatagram(datagram.data(), datagram.size(), mcast_addr, udp_port);
     qDebug()<<"udp write"<<ret<<" bytes";
 }
 
